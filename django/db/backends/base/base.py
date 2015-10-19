@@ -1,3 +1,4 @@
+# -*- coding:utf-8 -*-
 import time
 import warnings
 from collections import deque
@@ -109,16 +110,22 @@ class BaseDatabaseWrapper(object):
         self.in_atomic_block = False
         self.savepoint_ids = []
         self.needs_rollback = False
+
         # Reset parameters defining when to close the connection
         max_age = self.settings_dict['CONN_MAX_AGE']
         self.close_at = None if max_age is None else time.time() + max_age
+
         self.closed_in_transaction = False
         self.errors_occurred = False
+
         # Establish the connection
         conn_params = self.get_connection_params()
         self.connection = self.get_new_connection(conn_params)
+
+        # 在创建Connection之后，设置autocommit, 默认为: True
         self.set_autocommit(self.settings_dict['AUTOCOMMIT'])
         self.init_connection_state()
+
         connection_created.send(sender=self.__class__, connection=self)
 
     def ensure_connection(self):
@@ -384,6 +391,7 @@ class BaseDatabaseWrapper(object):
         or if it outlived its maximum age.
         """
         if self.connection is not None:
+            # 1. 保持默认的 AUTOCOMMIT, 如果当前状态和 配置不一样，关闭connection
             # If the application didn't restore the original autocommit setting,
             # don't take chances, drop the connection.
             if self.get_autocommit() != self.settings_dict['AUTOCOMMIT']:
@@ -399,6 +407,8 @@ class BaseDatabaseWrapper(object):
                     self.close()
                     return
 
+            # 2. 可以防止connection长时间没有访问，过期
+            #    通过max-age来控制close_at
             if self.close_at is not None and time.time() >= self.close_at:
                 self.close()
                 return

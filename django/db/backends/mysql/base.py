@@ -1,3 +1,4 @@
+# -*- coding:utf-8 -*-
 """
 MySQL database backend for Django.
 
@@ -273,6 +274,13 @@ class DatabaseWrapper(BaseDatabaseWrapper):
         return kwargs
 
     def get_new_connection(self, conn_params):
+        # 注意: get_connection_params上的参数控制
+        #      utf8-mb4等编码如何控制呢?
+        #      如何体现: autocommit 默认为 True 呢?
+
+        # PEP-249 requires autocommit to be initially off
+        # Database中的默认参数: autocommit = kwargs2.pop('autocommit', False)
+        #
         conn = Database.connect(**conn_params)
         conn.encoders[SafeText] = conn.encoders[six.text_type]
         conn.encoders[SafeBytes] = conn.encoders[bytes]
@@ -291,12 +299,15 @@ class DatabaseWrapper(BaseDatabaseWrapper):
         return CursorWrapper(cursor)
 
     def _rollback(self):
+        # 回滚?
         try:
             BaseDatabaseWrapper._rollback(self)
         except Database.NotSupportedError:
             pass
 
     def _set_autocommit(self, autocommit):
+        # 自动autocommit
+        # with self.wrap_database_errors 封装异常处理信息
         with self.wrap_database_errors:
             self.connection.autocommit(autocommit)
 
@@ -359,6 +370,7 @@ class DatabaseWrapper(BaseDatabaseWrapper):
                         referenced_table_name, referenced_column_name))
 
     def is_usable(self):
+        # 能ping通，则可用
         try:
             self.connection.ping()
         except Database.Error:
