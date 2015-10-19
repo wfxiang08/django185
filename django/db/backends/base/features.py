@@ -1,3 +1,4 @@
+# -*- coding:utf-8 -*-
 from django.db.models.aggregates import StdDev
 from django.db.utils import ProgrammingError
 from django.utils.functional import cached_property
@@ -158,6 +159,7 @@ class BaseDatabaseFeatures(object):
 
     # Does the backend decide to commit before SAVEPOINT statements
     # when autocommit is disabled? http://bugs.python.org/issue8145#msg109965
+    # 在 autocommit_is_off 还会自动提交?
     autocommits_when_autocommit_is_off = False
 
     # Does the backend prevent running SQL queries in broken transactions?

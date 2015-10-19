@@ -1,3 +1,4 @@
+# -*- coding:utf-8 -*-
 from django.db import (
     DEFAULT_DB_ALIAS, DatabaseError, Error, ProgrammingError, connections,
 )
@@ -141,21 +142,24 @@ class Atomic(ContextDecorator):
         self.savepoint = savepoint
 
     def __enter__(self):
+        """
+            如何利用现有的API, 来实现transaction的开启
+        """
         connection = get_connection(self.using)
-
+        # 如果当前的connection 不在事务中，
         if not connection.in_atomic_block:
             # Reset state when entering an outermost atomic block.
             connection.commit_on_exit = True
             connection.needs_rollback = False
+
+            # 如果auto_commit为false, 则事务进入开启状态
             if not connection.get_autocommit():
                 # Some database adapters (namely sqlite3) don't handle
                 # transactions and savepoints properly when autocommit is off.
                 # Turning autocommit back on isn't an option; it would trigger
                 # a premature commit. Give up if that happens.
                 if connection.features.autocommits_when_autocommit_is_off:
-                    raise TransactionManagementError(
-                        "Your database backend doesn't behave properly when "
-                        "autocommit is off. Turn it on before using 'atomic'.")
+                    raise TransactionManagementError("Your database backend doesn't behave properly when autocommit is off. Turn it on before using 'atomic'.")
                 # Pretend we're already in an atomic block to bypass the code
                 # that disables autocommit to enter a transaction, and make a
                 # note to deal with this case in __exit__.
@@ -180,10 +184,13 @@ class Atomic(ContextDecorator):
             # In such cases, start an explicit transaction instead, which has
             # the side-effect of disabling autocommit.
             if connection.features.autocommits_when_autocommit_is_off:
+                # 对于sqlite3成立
+                # 直接调用 BEGIN
                 connection._start_transaction_under_autocommit()
                 connection.autocommit = False
             else:
                 connection.set_autocommit(False)
+
             connection.in_atomic_block = True
 
     def __exit__(self, exc_type, exc_value, traceback):

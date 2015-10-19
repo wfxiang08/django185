@@ -299,7 +299,7 @@ class DatabaseWrapper(BaseDatabaseWrapper):
         return CursorWrapper(cursor)
 
     def _rollback(self):
-        # 回滚?
+        # 回滚
         try:
             BaseDatabaseWrapper._rollback(self)
         except Database.NotSupportedError:

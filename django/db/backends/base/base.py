@@ -323,6 +323,7 @@ class BaseDatabaseWrapper(object):
     def validate_no_atomic_block(self):
         """
         Raise an error if an atomic block is active.
+        确保当前的代码现在不在事务之中
         """
         if self.in_atomic_block:
             raise TransactionManagementError(
